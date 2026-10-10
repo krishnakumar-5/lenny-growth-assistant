@@ -1,0 +1,38 @@
+{
+  "trace_id": "trace-ship30-essay-003",
+  "timestamp": "2026-10-10T03:32:10Z",
+  "skill": "ship_30_for_30_atomic_essay",
+  "topic": "The 14-day reverse trial in product-led growth",
+  "target_audience": "Product Managers, Growth Leaders, and Founders",
+  "execution_steps": [
+    {
+      "step": 1,
+      "type": "retrieval",
+      "query": "The 14-day reverse trial in product-led growth",
+      "chunks_retrieved": 2,
+      "primary_guest": "Elena Verna"
+    },
+    {
+      "step": 2,
+      "type": "synthesis",
+      "framework": "Ship 30 for 30 (Dickie Bush & Nicolas Cole)",
+      "target_word_count_range": [200, 300],
+      "generated_word_count": 245,
+      "constraint_satisfied": true
+    },
+    {
+      "step": 3,
+      "type": "artifact_packaging",
+      "markdown_length": 1420,
+      "html_card_generated": true,
+      "sandbox_mode": "iframe sandbox=''"
+    }
+  ],
+  "output": {
+    "title": "The Death of the 30-Day Free Trial",
+    "hook": "Most B2B SaaS companies kick users out after 14 days, destroying product habit.",
+    "word_count": 245,
+    "within_constraints": true,
+    "guest_attribution": "Elena Verna"
+  }
+}

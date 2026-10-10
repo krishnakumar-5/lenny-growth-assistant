@@ -1,0 +1,39 @@
+{
+  "trace_id": "trace-pi-agent-adapter-004",
+  "timestamp": "2026-10-10T03:33:45Z",
+  "agent_framework": "pi_coding_agent",
+  "runtime": "@earendil-works/pi-coding-agent v1.1.0",
+  "executable": "pi",
+  "execution_steps": [
+    {
+      "step": 1,
+      "type": "config_generation",
+      "target_file": "~/.pi/agent/models.json",
+      "config_payload": {
+        "providers": {
+          "ollama": {
+            "baseUrl": "http://localhost:11434/v1",
+            "api": "openai-completions",
+            "apiKey": "ollama",
+            "models": [{ "id": "llama3:8b" }]
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "type": "cli_discovery",
+      "command": "shutil.which('pi')",
+      "status": "DISCOVERED_OR_MOCKED",
+      "cli_flags": ["-p", "<grounded_prompt>"]
+    },
+    {
+      "step": 3,
+      "type": "runtime_invocation",
+      "command": "pi -p [PROMPT]",
+      "timeout_seconds": 30.0,
+      "result": "Grounded answer synthesized through Pi runtime"
+    }
+  ],
+  "host_environment_note": "On hosts without global npm installation or behind TLS intercepting proxies, PiCodingAgentAdapter raises PiAgentUnavailableError returning HTTP 503 rather than silently substituting custom fallbacks."
+}

@@ -1,0 +1,76 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Virtual environments (Python)
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+*.sqlite
+*.sqlite3
+*.db
+
+# Node.js dependencies and build outputs (Frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+dist/
+dist-ssr/
+*.local
+
+# Local transcripts and raw data
+data/raw/
+*.transcript
+*.transcripts.jsonl
+*.transcripts.json
+!data/transcripts/*.md
+
+# Agent runtime logs and scratch data
+agent_logs/*.log
+agent_logs/*.jsonl
+!agent_logs/.gitkeep
+
+# Local Ollama / Model cache
+models/
+*.bin
+*.gguf
+
+# Operating System and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
