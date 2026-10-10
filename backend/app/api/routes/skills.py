@@ -58,7 +58,7 @@ async def generate_ship30_essay(
     except InsufficientTranscriptEvidenceError as e:
         logger.warning("Ship 30 essay generation refused due to lack of evidence: %s", e)
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(e),
         )
     except OllamaUnavailableError as e:
