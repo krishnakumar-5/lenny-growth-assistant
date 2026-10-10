@@ -50,11 +50,21 @@ describe('Frontend API Service', () => {
     const result = await sendChatMessage({
       message: 'What is growth?',
       provider: 'ollama',
-      model: 'llama3:8b',
+      model: 'qwen2.5:3b',
     });
 
     expect(result.session_id).toBe('sess-123');
     expect(result.message).toBe('Here is your grounded answer.');
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/chat'),
+      expect.objectContaining({
+        body: JSON.stringify({
+          message: 'What is growth?',
+          provider: 'ollama',
+          model: 'qwen2.5:3b',
+        }),
+      })
+    );
   });
 
   it('sendChatMessage throws ApiError with status and detail on failure', async () => {

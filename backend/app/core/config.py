@@ -42,7 +42,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OLLAMA_BASE_URL", "OLLAMA_HOST"),
     )
     OLLAMA_MODEL: str = Field(
-        default="llama3:8b",
+        default="qwen2.5:3b",
         validation_alias=AliasChoices("OLLAMA_MODEL"),
     )
     OLLAMA_TIMEOUT_SECONDS: float = Field(default=30.0)

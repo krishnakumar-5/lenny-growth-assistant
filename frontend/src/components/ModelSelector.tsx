@@ -24,7 +24,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     const newProvider = e.target.value;
     setProvider(newProvider);
     if (newProvider === 'ollama') {
-      setModel('llama3:8b');
+      setModel('qwen2.5:3b');
     } else if (newProvider === 'anthropic') {
       setModel('claude-3-5-sonnet-20241022');
     }
@@ -68,10 +68,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               disabled={disabled}
               className="text-xs rounded-lg border-slate-200 bg-slate-50 py-1 px-2.5 text-slate-800 font-medium border focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
             >
-              <option value="llama3:8b">llama3:8b (Standard)</option>
-              <option value="qwen2.5:3b">qwen2.5:3b (Local Host)</option>
-              <option value="mistral:7b">mistral:7b</option>
+              <option value="qwen2.5:3b">qwen2.5:3b (Local Host / Default)</option>
+              <option value="llama3:8b">llama3:8b</option>
               <option value="llama3.1:8b">llama3.1:8b</option>
+              <option value="mistral:7b">mistral:7b</option>
             </select>
           ) : (
             <select

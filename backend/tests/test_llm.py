@@ -21,13 +21,16 @@ from app.services.llm import get_llm_client
 @pytest.mark.unit
 def test_ollama_client_initialization():
     """Verify OllamaClient properties and default configuration."""
+    client_default = OllamaClient()
+    assert client_default.model_name == "qwen2.5:3b"
+
     client = OllamaClient(
         base_url="http://localhost:11434/",
-        model_name="llama3:8b",
+        model_name="qwen2.5:3b",
         timeout_seconds=25.0,
     )
     assert client.provider_name == "ollama"
-    assert client.model_name == "llama3:8b"
+    assert client.model_name == "qwen2.5:3b"
     assert client.timeout_seconds == 25.0
     assert client.base_url == "http://localhost:11434"
 
@@ -200,10 +203,15 @@ async def test_anthropic_generate_response_success():
 
 @pytest.mark.unit
 def test_get_llm_client_factory_ollama():
-    """Verify factory returns OllamaClient for 'ollama'."""
+    """Verify factory returns OllamaClient for 'ollama' with default model 'qwen2.5:3b'."""
     client = get_llm_client(provider_name="ollama")
     assert isinstance(client, OllamaClient)
     assert client.provider_name == "ollama"
+    assert client.model_name == "qwen2.5:3b"
+
+    # Verify custom model override works
+    client_custom = get_llm_client(provider_name="ollama", model_name="mistral:7b")
+    assert client_custom.model_name == "mistral:7b"
 
 
 @pytest.mark.unit

@@ -21,7 +21,7 @@ export const App: React.FC = () => {
 
   // Inference Settings
   const [provider, setProvider] = useState('ollama');
-  const [model, setModel] = useState('llama3:8b');
+  const [model, setModel] = useState('qwen2.5:3b');
   const [agentFramework, setAgentFramework] = useState('anthropic_tool_agent');
 
   // System Health

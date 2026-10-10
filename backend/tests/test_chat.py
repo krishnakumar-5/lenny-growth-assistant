@@ -543,3 +543,22 @@ def test_chat_sqlite_live_db_session_and_messages_persisted(tmp_path):
     finally:
         app.dependency_overrides.clear()
         test_engine.dispose()
+
+
+@pytest.mark.unit
+def test_chat_default_model_is_qwen2_5_3b(client):
+    """Verify that when no model is explicitly passed in chat payload, default is qwen2.5:3b."""
+    with patch(
+        "app.services.llm.ollama_client.OllamaClient.generate_response",
+        new_callable=AsyncMock,
+    ) as mock_gen:
+        mock_gen.return_value = "Retention is the foundation of growth loops."
+
+        res = client.post(
+            "/api/v1/chat",
+            json={"message": "cohort retention", "provider": "ollama"},
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["provider"] == "ollama"
+        assert data["model"] == "qwen2.5:3b"
