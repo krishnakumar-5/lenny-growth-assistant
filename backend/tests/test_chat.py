@@ -437,3 +437,109 @@ def test_chat_pi_agent_empty_retrieval_preserves_sufficiency_gate(client):
         assert "could not find sufficient information" in data["message"].lower()
         # Verify Pi CLI was NOT invoked when evidence is absent
         assert not mock_pi.called
+
+
+@pytest.mark.unit
+def test_chat_sqlite_live_db_session_and_messages_persisted(tmp_path):
+    """Regression test: verify that chat endpoint persists sessions and messages into SQLite."""
+    db_file = tmp_path / "test_chat_persist.db"
+    test_db_url = f"sqlite:///{db_file.as_posix()}"
+
+    test_engine = create_engine(
+        test_db_url,
+        connect_args={"check_same_thread": False},
+    )
+    Base.metadata.create_all(bind=test_engine)
+    TestingSession = sessionmaker(bind=test_engine)
+
+    # Seed knowledge base chunk
+    with TestingSession() as seed_db:
+        t = Transcript(
+            source_id="sqlite_test_ep",
+            title="Elena Verna Reverse Trial Playbook",
+            source_filename="elena_reverse_trial.md",
+            content_hash="hash_sqlite_123",
+            raw_content="A reverse trial provides full enterprise access for 14 days and then gracefully downgrades to free.",
+            meta_info={"guest": "Elena Verna", "episode": 78},
+        )
+        c = TranscriptChunk(
+            transcript=t,
+            chunk_index=0,
+            chunk_text="A reverse trial provides full enterprise access for 14 days and then gracefully downgrades to free.",
+            char_count=98,
+            meta_info={"start_char": 0, "end_char": 98},
+        )
+        seed_db.add_all([t, c])
+        seed_db.commit()
+
+    # Create client using TestingSession
+    def override_db():
+        with TestingSession() as db:
+            yield db
+
+    app.dependency_overrides[get_db] = override_db
+    test_client = TestClient(app)
+
+    try:
+        mock_response = "Elena Verna describes the reverse trial as a 14-day enterprise trial that downgrades to free."
+        with patch(
+            "app.services.llm.ollama_client.OllamaClient.generate_response",
+            new_callable=AsyncMock,
+        ) as mock_gen:
+            mock_gen.return_value = mock_response
+
+            # Turn 1: create new session
+            res1 = test_client.post(
+                "/api/v1/chat",
+                json={"message": "What is Elena Verna's reverse trial?"},
+            )
+            assert res1.status_code == 200
+            data1 = res1.json()
+            session_id = uuid.UUID(data1["session_id"])
+            assert data1["message"] == mock_response
+            assert len(data1["sources"]) == 1
+
+            # Verify SQLite persistence
+            with TestingSession() as verify_db:
+                db_sess = verify_db.get(ConversationSession, session_id)
+                assert db_sess is not None
+                db_msgs = (
+                    verify_db.execute(
+                        select(Message)
+                        .where(Message.session_id == session_id)
+                        .order_by(Message.created_at.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(db_msgs) == 2
+                assert db_msgs[0].role == "user"
+                assert db_msgs[1].role == "assistant"
+
+            # Turn 2: follow-up in the same session
+            mock_gen.return_value = "It helps because users form product habits without commitment."
+            res2 = test_client.post(
+                "/api/v1/chat",
+                json={
+                    "message": "Why does that work so well?",
+                    "session_id": str(session_id),
+                },
+            )
+            assert res2.status_code == 200
+
+            # Verify both turns are preserved in SQLite
+            with TestingSession() as verify_db:
+                db_msgs = (
+                    verify_db.execute(
+                        select(Message)
+                        .where(Message.session_id == session_id)
+                        .order_by(Message.created_at.asc())
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert len(db_msgs) == 4
+                assert [m.role for m in db_msgs] == ["user", "assistant", "user", "assistant"]
+    finally:
+        app.dependency_overrides.clear()
+        test_engine.dispose()

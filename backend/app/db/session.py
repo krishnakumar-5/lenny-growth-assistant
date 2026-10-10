@@ -10,10 +10,12 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Connection arguments for PostgreSQL (fail fast if DB is unreachable)
+# Connection arguments for database dialect
 connect_args = {}
 if "postgres" in settings.sync_database_url:
     connect_args["connect_timeout"] = 2
+elif "sqlite" in settings.sync_database_url:
+    connect_args["check_same_thread"] = False
 
 # Lazily configured SQLAlchemy engine
 engine = create_engine(
@@ -22,6 +24,15 @@ engine = create_engine(
     echo=settings.DEBUG,
     connect_args=connect_args,
 )
+
+if "sqlite" in settings.sync_database_url:
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 # Session factory for database operations
 SessionLocal = sessionmaker(

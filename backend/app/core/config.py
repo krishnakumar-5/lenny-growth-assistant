@@ -4,6 +4,9 @@ from typing import List, Union
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
+
 
 class Settings(BaseSettings):
     """Application runtime configuration managed via environment variables."""
@@ -111,6 +114,15 @@ class Settings(BaseSettings):
                 return url.replace("postgresql://", "postgresql+psycopg://", 1)
             elif url.startswith("postgresql+asyncpg://"):
                 return url.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
+            elif url.startswith("sqlite:///"):
+                db_path = url[len("sqlite:///"):]
+                if db_path == ":memory:":
+                    return url
+                p = Path(db_path)
+                if not p.is_absolute():
+                    resolved = (PROJECT_ROOT / p).resolve()
+                    return f"sqlite:///{resolved.as_posix()}"
+                return f"sqlite:///{p.resolve().as_posix()}"
             return url
         return None
 
@@ -136,11 +148,14 @@ class Settings(BaseSettings):
         if parent_p.exists():
             return parent_p.resolve()
         # Fallback to root relative to this file
-        project_root = Path(__file__).resolve().parent.parent.parent.parent
-        return (project_root / p).resolve()
+        return (PROJECT_ROOT / p).resolve()
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(
+            str(PROJECT_ROOT / ".env"),
+            str(BACKEND_ROOT / ".env"),
+            ".env",
+        ),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

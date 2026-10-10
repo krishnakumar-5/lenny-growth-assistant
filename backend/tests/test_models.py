@@ -149,3 +149,36 @@ def test_unit_get_db_generator():
     # Generator cleanup
     with pytest.raises(StopIteration):
         next(gen)
+
+
+@pytest.mark.unit
+def test_sqlite_url_resolution_and_predictable_path():
+    """Verify that relative SQLite URLs resolve to the predictable PROJECT_ROOT path."""
+    from pathlib import Path
+    from app.core.config import Settings, PROJECT_ROOT
+
+    # Test relative path with ./ prefix
+    s1 = Settings(DATABASE_URL="sqlite:///./test_custom.db", _env_file=())
+    expected_path_1 = (PROJECT_ROOT / "test_custom.db").resolve().as_posix()
+    assert s1.sync_database_url == f"sqlite:///{expected_path_1}"
+
+    # Test relative path without ./ prefix
+    s2 = Settings(DATABASE_URL="sqlite:///test_custom.db", _env_file=())
+    assert s2.sync_database_url == f"sqlite:///{expected_path_1}"
+
+    # Test in-memory SQLite remains untouched
+    s3 = Settings(DATABASE_URL="sqlite:///:memory:", _env_file=())
+    assert s3.sync_database_url == "sqlite:///:memory:"
+
+    # Test PostgreSQL URL remains untouched
+    pg_url = "postgresql+psycopg://user:pass@localhost:5432/testdb"
+    s4 = Settings(DATABASE_URL=pg_url, _env_file=())
+    assert s4.sync_database_url == pg_url
+
+
+@pytest.mark.unit
+def test_sqlite_engine_thread_safety_connect_args():
+    """Verify that SQLite engine configuration enables check_same_thread=False."""
+    from app.db.session import engine, connect_args
+    if "sqlite" in engine.url.render_as_string():
+        assert connect_args.get("check_same_thread") is False
