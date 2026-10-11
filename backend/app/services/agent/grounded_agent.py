@@ -60,11 +60,12 @@ class GroundedGrowthAgent:
         """Execute the agentic flow: tool retrieval -> verification -> grounded generation."""
         limit = search_limit or self.settings.CHAT_SEARCH_LIMIT
 
-        # Step 1: Formulate tool parameters and execute retrieval tool
+        # Step 1: Formulate tool parameters and execute retrieval tool (excluding synthetic fixtures)
         retrieved_chunks = execute_retrieval_tool(
             db=db,
             query=user_message,
             limit=limit,
+            exclude_synthetic=True,
         )
 
         # Step 2: Evidence Sufficiency Verification
@@ -92,14 +93,17 @@ class GroundedGrowthAgent:
 
         for idx, chunk in enumerate(retrieved_chunks, start=1):
             guest_str = chunk.metadata.get("guest") or "Not specified"
-            episode_str = chunk.metadata.get("episode") or "Not specified"
-            synthetic_flag = chunk.metadata.get("synthetic_test_data", False)
+            episode_str = chunk.metadata.get("episode") or chunk.metadata.get("date") or "Not specified"
+            post_url_str = chunk.metadata.get("post_url") or chunk.metadata.get("source_url")
+            synthetic_flag = chunk.metadata.get("synthetic_test_data", False) or chunk.metadata.get("is_test_fixture", False)
             disclaimer = " [BENCHMARK TEST DATA - NOT AUTHENTIC EPISODE]" if synthetic_flag else ""
 
             evidence_lines.append(f"\n[Source {idx}]")
             evidence_lines.append(f"Title: {chunk.transcript_title}{disclaimer}")
             evidence_lines.append(f"File: {chunk.source_filename} (Chunk #{chunk.chunk_index})")
-            evidence_lines.append(f"Guest: {guest_str} | Episode: {episode_str}")
+            evidence_lines.append(f"Guest: {guest_str} | Date/Episode: {episode_str}")
+            if post_url_str:
+                evidence_lines.append(f"Source URL: {post_url_str}")
             evidence_lines.append(f"Excerpt: \"{chunk.chunk_text}\"")
 
             citations.append(

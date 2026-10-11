@@ -25,18 +25,18 @@ router = APIRouter(tags=["skills"])
     "/skills/ship30-essay",
     response_model=Ship30Response,
     status_code=status.HTTP_200_OK,
-    summary="Generate Grounded Ship 30 for 30 Atomic Essay",
+    summary="Generate Grounded Ship 30 for 30 Growth Essay",
     description=(
         "Retrieves verified podcast transcript evidence for a product/growth topic, "
-        "and synthesizes a high-impact, 200-300 word 'Atomic Essay' adhering strictly "
-        "to the Ship 30 for 30 digital writing framework by Dickie Bush & Nicolas Cole."
+        "and synthesizes a grounded, long-form (~1,250 words, target 1,150-1,350 words in the body) essay "
+        "adhering to the Ship 30 for 30 digital writing architecture by Dickie Bush & Nicolas Cole."
     ),
 )
 async def generate_ship30_essay(
     request: Ship30Request,
     db: Session = Depends(get_db),
 ) -> Ship30Response:
-    """Generate a grounded Ship 30 for 30 Atomic Essay artifact."""
+    """Generate a grounded Ship 30 for 30 growth essay artifact."""
     # 1. Resolve LLM client
     try:
         llm_client = get_llm_client(

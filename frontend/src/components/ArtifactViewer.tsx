@@ -106,7 +106,7 @@ export const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ artifact, onClos
                   : 'bg-rose-50 text-rose-800 border-rose-200'
               }`}
             >
-              {artifact.word_count} words • {artifact.within_constraints ? 'Ship 30 Compliant (200-300w)' : 'Word Count Notice'}
+              {artifact.word_count} words • {artifact.within_constraints ? (artifact.word_count > 500 ? 'Ship 30 Compliant (~1,250w)' : 'Ship 30 Compliant (200-300w)') : 'Word Count Notice'}
             </span>
           </div>
 

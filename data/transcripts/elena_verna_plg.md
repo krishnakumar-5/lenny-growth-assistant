@@ -1,10 +1,12 @@
 ---
-title: "The Ultimate Guide to Product-Led Growth (PLG) and Product-Led Sales"
+title: "[TEST FIXTURE] The Ultimate Guide to Product-Led Growth (PLG) and Product-Led Sales"
 guest: "Elena Verna"
 episode: 78
 topic: "Product-Led Growth & B2B Monetization"
 source_url: "https://www.lennysnewsletter.com/p/elena-verna-plg"
-synthetic_test_data: false
+synthetic_test_data: true
+is_test_fixture: true
+authenticity_notice: "Synthetic benchmark summary authored for development and automated test validation. Not an authentic Lenny's Podcast audio transcript."
 ---
 
 # Elena Verna on Product-Led Growth and Product-Led Sales

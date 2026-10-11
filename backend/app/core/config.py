@@ -29,6 +29,10 @@ class Settings(BaseSettings):
         default="data/transcripts",
         validation_alias=AliasChoices("TRANSCRIPTS_DIR", "DATA_TRANSCRIPTS_DIR"),
     )
+    LENNYS_DATASET_DIR: Union[str, None] = Field(
+        default=None,
+        validation_alias=AliasChoices("LENNYS_DATASET_DIR", "LENNYS_DATA_DIR"),
+    )
 
     # LLM Provider Configuration ('ollama' or 'anthropic')
     LLM_PROVIDER: str = Field(
@@ -149,6 +153,21 @@ class Settings(BaseSettings):
             return parent_p.resolve()
         # Fallback to root relative to this file
         return (PROJECT_ROOT / p).resolve()
+
+    @property
+    def authentic_dataset_path(self) -> Union[Path, None]:
+        """Resolve external Lenny's dataset directory if configured."""
+        if not self.LENNYS_DATASET_DIR:
+            return None
+        p = Path(self.LENNYS_DATASET_DIR)
+        if p.is_absolute():
+            return p.resolve() if p.exists() else p
+        for base in [PROJECT_ROOT, PROJECT_ROOT.parent, Path(".")]:
+            candidate = (base / p).resolve()
+            if candidate.exists():
+                return candidate
+        return (PROJECT_ROOT / p).resolve()
+
 
     model_config = SettingsConfigDict(
         env_file=(

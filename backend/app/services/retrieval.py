@@ -1,24 +1,88 @@
 import re
-from typing import List
+from typing import List, Optional, Set
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models.transcript import Transcript, TranscriptChunk
 from app.schemas.sources import SearchResultItem
 
+TEST_FIXTURE_SOURCE_IDS: Set[str] = {
+    "sample_growth_accounting",
+    "elena_verna_plg",
+    "brian_balfour_loops",
+    "shreyas_doshi_strategy",
+    "synthetic_growth_benchmark",
+}
+
+def is_synthetic_or_fixture(transcript: Transcript, chunk: Optional[TranscriptChunk] = None) -> bool:
+    """Determine whether a transcript or chunk is a synthetic benchmark or test fixture.
+
+    Checks explicit flags in metadata, recognized fixture source IDs, and title tags.
+    """
+    # 1. Explicit metadata flags on transcript
+    t_meta = transcript.meta_info if isinstance(transcript.meta_info, dict) else {}
+    if t_meta.get("synthetic_test_data") in (True, "true", "True", "synthetic_test_data"):
+        return True
+    if t_meta.get("is_test_fixture") in (True, "true", "True"):
+        return True
+    if t_meta.get("data_classification") in ("synthetic_test_data", "test_fixture"):
+        return True
+
+    # 2. Explicit metadata flags on chunk
+    if chunk is not None:
+        c_meta = chunk.meta_info if isinstance(chunk.meta_info, dict) else {}
+        if c_meta.get("synthetic_test_data") in (True, "true", "True", "synthetic_test_data"):
+            return True
+        if c_meta.get("is_test_fixture") in (True, "true", "True"):
+            return True
+        if c_meta.get("data_classification") in ("synthetic_test_data", "test_fixture"):
+            return True
+
+    # 3. Explicit title markers
+    title_lower = (transcript.title or "").lower()
+    if "[synthetic" in title_lower or "[test fixture]" in title_lower:
+        return True
+
+    # 4. Known fixture source identifiers
+    if transcript.source_id and transcript.source_id.lower().strip() in TEST_FIXTURE_SOURCE_IDS:
+        return True
+
+    return False
+
+
+def purge_test_fixtures(db: Session) -> int:
+    """Safely remove test fixture transcripts and associated chunks from the database.
+
+    Leaves all 50 authentic podcast episodes untouched. Returns the count of deleted transcripts.
+    """
+    stmt = select(Transcript)
+    transcripts = db.execute(stmt).scalars().all()
+    count = 0
+    for t in transcripts:
+        dummy_chunk = t.chunks[0] if t.chunks else None
+        if is_synthetic_or_fixture(t, dummy_chunk):
+            db.delete(t)
+            count += 1
+    if count > 0:
+        db.commit()
+    return count
+
 
 def search_transcripts(
     db: Session,
     query: str,
     limit: int = 5,
+    exclude_synthetic: bool = True,
 ) -> List[SearchResultItem]:
     """Search transcript chunks using keyword matching and relevance ranking.
-    
-    Architecture Trade-off:
-    Uses portable SQL ILIKE/LIKE candidate selection with in-memory term frequency
-    and exact phrase boosting. This provides predictable, zero-dependency search
-    compatible with both PostgreSQL and SQLite unit test databases, avoiding
-    external vector/embedding services in this milestone.
+
+    Args:
+        db: Active database session.
+        query: User search query or keywords.
+        limit: Maximum number of ranked chunks to return.
+        exclude_synthetic: When True (default for production chat), excludes all
+            records marked as synthetic test data or test fixtures. When False,
+            includes all records (used for test verification).
     """
     clean_query = query.strip()
     if not clean_query:
@@ -63,6 +127,10 @@ def search_transcripts(
     query_lower = clean_query.lower()
 
     for chunk, transcript in rows:
+        # Exclude synthetic benchmark fixtures from production search
+        if exclude_synthetic and is_synthetic_or_fixture(transcript, chunk):
+            continue
+
         chunk_lower = chunk.chunk_text.lower()
         title_lower = transcript.title.lower()
 

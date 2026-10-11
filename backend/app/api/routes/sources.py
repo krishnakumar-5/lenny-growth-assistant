@@ -23,6 +23,7 @@ def search_sources(
         db=db,
         query=payload.query,
         limit=payload.limit,
+        exclude_synthetic=not payload.include_synthetic,
     )
 
     return SourceSearchResponse(

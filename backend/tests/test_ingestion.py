@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import pytest
 from sqlalchemy import create_engine, select
@@ -7,8 +8,9 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.models.transcript import Transcript, TranscriptChunk
 from app.services.chunking import split_text_into_chunks
-from app.services.ingestion import ingest_directory, ingest_transcript_file
-from app.services.parser import parse_frontmatter, parse_transcript_file
+from app.services.ingestion import ingest_directory, ingest_transcript_file, load_dataset_index
+from app.services.parser import parse_frontmatter, parse_transcript_file, repair_mojibake
+from app.services.retrieval import search_transcripts
 
 
 @pytest.fixture(scope="function")
@@ -166,3 +168,172 @@ def test_ingest_directory_summary(test_db, tmp_path: Path):
     assert summary.created == 2
     assert summary.skipped_empty == 1
     assert summary.failed == 0
+
+
+@pytest.mark.unit
+def test_mojibake_repair_diagnostics():
+    """Verify that repair_mojibake fixes known CP1252/UTF-8 double-encoding artifacts without mutating clean text."""
+    # CP1252 mojibake artifacts
+    dirty = "Itâ€™s an â€œauthenticâ€ episode â€” with cafÃ© and jalapeÃ±o."
+    fixed = repair_mojibake(dirty)
+    assert fixed == "It's an \"authentic\" episode — with café and jalapeño."
+
+    # Clean text should remain strictly unaltered
+    clean = "Elena Verna discusses PLG, freemium, and reverse trials."
+    assert repair_mojibake(clean) == clean
+
+    # Empty text
+    assert repair_mojibake("") == ""
+
+
+@pytest.mark.unit
+def test_parse_authentic_dataset_yaml_frontmatter(tmp_path: Path):
+    """Verify parsing rich YAML frontmatter matching Lenny's Data starter dataset."""
+    sample_content = """---
+title: "Adam Mosseri: AI is a tailwind for authenticity"
+date: "2026-07-09"
+type: "podcast"
+guest: "Adam Mosseri"
+channel: "Lenny's Podcast"
+post_url: "https://www.lennysnewsletter.com/p/adam-mosseri-ai-is-a-tailwind-for"
+description: "AI is a tailwind for authenticity, covering product design and leadership."
+word_count: 12640
+youtube_url: "https://www.youtube.com/watch?v=sample123"
+video_id: "sample123"
+---
+
+**Adam Mosseri** (00:00:00):
+No, I think taste matters a ton. In a world where it's easier to build things, it's more important to make sure that your time is spent figuring out what you should be building in the first place.
+
+**Lenny Rachitsky** (00:00:23):
+What's something that the Instagram algorithm knows about human behavior that people may not realize?
+"""
+    file_path = tmp_path / "adam-mosseri.md"
+    file_path.write_text(sample_content, encoding="utf-8")
+
+    title, raw_content, metadata, content_hash = parse_transcript_file(file_path)
+
+    assert title == "Adam Mosseri: AI is a tailwind for authenticity"
+    assert metadata["guest"] == "Adam Mosseri"
+    assert metadata["date"] == "2026-07-09"
+    assert metadata["post_url"] == "https://www.lennysnewsletter.com/p/adam-mosseri-ai-is-a-tailwind-for"
+    assert metadata["source_url"] == "https://www.lennysnewsletter.com/p/adam-mosseri-ai-is-a-tailwind-for"
+    assert metadata["youtube_url"] == "https://www.youtube.com/watch?v=sample123"
+    assert metadata["video_id"] == "sample123"
+    assert metadata["word_count"] == 12640
+    assert metadata["speaker_timestamps_present"] is True
+    assert metadata["source_filename"] == "adam-mosseri.md"
+    assert len(content_hash) == 64
+
+
+@pytest.mark.unit
+def test_load_dataset_index_catalog(tmp_path: Path):
+    """Verify loading and resolving index.json catalog metadata."""
+    index_data = {
+        "schema_version": "2.0",
+        "podcasts": [
+            {
+                "title": "Molly Graham on Burnout",
+                "filename": "podcasts/molly-graham-2.md",
+                "word_count": 18220,
+                "date": "2026-09-27",
+                "guest": "Molly Graham",
+                "post_url": "https://www.lennysnewsletter.com/p/the-grief-loneliness-and-burnout",
+            }
+        ]
+    }
+    index_file = tmp_path / "index.json"
+    index_file.write_text(json.dumps(index_data), encoding="utf-8")
+
+    lookup = load_dataset_index(tmp_path)
+    assert "podcasts/molly-graham-2.md" in lookup
+    assert "molly-graham-2.md" in lookup
+    assert "molly-graham-2" in lookup
+
+    entry = lookup["molly-graham-2.md"]
+    assert entry["guest"] == "Molly Graham"
+    assert entry["post_url"] == "https://www.lennysnewsletter.com/p/the-grief-loneliness-and-burnout"
+
+
+@pytest.mark.unit
+def test_ingest_directory_with_podcasts_subdirectory_and_idempotency(test_db, tmp_path: Path):
+    """Verify auto-discovery of podcasts/ subdirectory, index metadata merging, and idempotency."""
+    # Create directory structure matching external dataset
+    podcasts_dir = tmp_path / "podcasts"
+    podcasts_dir.mkdir()
+
+    index_data = {
+        "podcasts": [
+            {
+                "title": "Brian Balfour Strategy",
+                "filename": "podcasts/brian.md",
+                "guest": "Brian Balfour",
+                "post_url": "https://www.lennysnewsletter.com/p/brian-balfour",
+            }
+        ]
+    }
+    (tmp_path / "index.json").write_text(json.dumps(index_data), encoding="utf-8")
+
+    sample_md = """---
+title: "Brian Balfour Strategy"
+date: "2026-08-01"
+type: "podcast"
+guest: "Brian Balfour"
+word_count: 500
+---
+
+**Brian Balfour** (00:00:10):
+Loops compound while linear funnels hit diminishing returns over time.
+"""
+    (podcasts_dir / "brian.md").write_text(sample_md, encoding="utf-8")
+
+    # First ingestion run
+    summary1 = ingest_directory(tmp_path, test_db)
+    assert summary1.total_files == 1
+    assert summary1.created == 1
+    assert summary1.skipped_unchanged == 0
+
+    # Verify metadata merged post_url from index.json
+    transcript = test_db.execute(select(Transcript).where(Transcript.source_id == "brian")).scalar_one()
+    assert transcript.meta_info.get("post_url") == "https://www.lennysnewsletter.com/p/brian-balfour"
+    assert transcript.meta_info.get("source_url") == "https://www.lennysnewsletter.com/p/brian-balfour"
+    assert transcript.meta_info.get("synthetic_test_data") is False
+    assert transcript.meta_info.get("is_test_fixture") is False
+
+    # Second ingestion run (idempotency check)
+    summary2 = ingest_directory(tmp_path, test_db)
+    assert summary2.total_files == 1
+    assert summary2.created == 0
+    assert summary2.skipped_unchanged == 1
+
+    # Verify no duplicate records
+    all_transcripts = test_db.execute(select(Transcript)).scalars().all()
+    assert len(all_transcripts) == 1
+
+
+@pytest.mark.unit
+def test_retrieval_preserves_authentic_citations(test_db, tmp_path: Path):
+    """Verify that search_transcripts returns SearchResultItem with authentic post_url and metadata."""
+    sample_md = """---
+title: "Adam Mosseri: AI and Authenticity"
+guest: "Adam Mosseri"
+date: "2026-07-09"
+post_url: "https://www.lennysnewsletter.com/p/adam-mosseri-ai"
+---
+
+**Adam Mosseri** (00:00:00):
+In a world where there is an abundance of synthetic content, authenticity becomes paramount.
+"""
+    file_path = tmp_path / "adam-mosseri.md"
+    file_path.write_text(sample_md, encoding="utf-8")
+
+    ingest_transcript_file(file_path, test_db)
+
+    results = search_transcripts(test_db, "authenticity synthetic", limit=5)
+    assert len(results) >= 1
+    top_result = results[0]
+    assert top_result.transcript_title == "Adam Mosseri: AI and Authenticity"
+    assert top_result.metadata.get("post_url") == "https://www.lennysnewsletter.com/p/adam-mosseri-ai"
+    assert top_result.metadata.get("source_url") == "https://www.lennysnewsletter.com/p/adam-mosseri-ai"
+    assert top_result.metadata.get("guest") == "Adam Mosseri"
+    assert top_result.metadata.get("synthetic_test_data") is False

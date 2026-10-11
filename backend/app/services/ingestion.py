@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
+import json
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 import uuid
 
 from sqlalchemy import select
@@ -42,11 +43,48 @@ class IngestionSummary:
         return self.failed > 0
 
 
+def load_dataset_index(directory_path: Path) -> Dict[str, Dict[str, Any]]:
+    """Load index.json from directory or its parent, mapping filenames to entry metadata."""
+    candidate_paths = [
+        directory_path / "index.json",
+        directory_path.parent / "index.json",
+    ]
+    for p in candidate_paths:
+        if p.exists() and p.is_file():
+            try:
+                raw = p.read_bytes()
+                try:
+                    data = json.loads(raw.decode("utf-8"))
+                except UnicodeDecodeError:
+                    data = json.loads(raw.decode("utf-8", errors="replace"))
+
+                items = (
+                    data.get("podcasts", [])
+                    if isinstance(data, dict)
+                    else (data if isinstance(data, list) else [])
+                )
+                lookup: Dict[str, Dict[str, Any]] = {}
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    fn = item.get("filename")
+                    if fn:
+                        lookup[fn] = item
+                        lookup[Path(fn).name] = item
+                        lookup[Path(fn).stem.lower().strip()] = item
+                logger.info("Loaded %d dataset index entries from %s", len(items), p)
+                return lookup
+            except Exception as e:
+                logger.warning("Failed to parse dataset index from %s: %s", p, e)
+    return {}
+
+
 def ingest_transcript_file(
     file_path: Path,
     db: Session,
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
+    extra_metadata: Optional[Dict[str, Any]] = None,
 ) -> IngestionResult:
     """Ingest or update a single transcript file idempotently.
     
@@ -73,6 +111,21 @@ def ingest_transcript_file(
             status="failed",
             message=f"Parse error: {exc}",
         )
+
+    # Merge external catalog index metadata if provided
+    if extra_metadata:
+        for k, v in extra_metadata.items():
+            if k not in metadata or not metadata[k]:
+                metadata[k] = v
+        if "post_url" in extra_metadata:
+            metadata["post_url"] = extra_metadata["post_url"]
+            metadata["source_url"] = extra_metadata["post_url"]
+
+    # Tag provenance defaults if not explicitly marked
+    if "synthetic_test_data" not in metadata:
+        metadata["synthetic_test_data"] = False
+    if "is_test_fixture" not in metadata:
+        metadata["is_test_fixture"] = False
 
     # Use file stem as unique source identifier
     source_id = file_path.stem.lower().strip()
@@ -188,19 +241,30 @@ def ingest_directory(
         logger.warning("Directory does not exist: %s", directory_path)
         return summary
 
+    # Detect podcasts/ subdirectory if user passed root dataset directory
+    target_dir = directory_path
+    if (directory_path / "podcasts").is_dir():
+        target_dir = directory_path / "podcasts"
+
+    index_lookup = load_dataset_index(directory_path)
+
     files = [
-        f for f in sorted(directory_path.iterdir())
+        f for f in sorted(target_dir.iterdir())
         if f.is_file() and f.suffix.lower() in [".md", ".txt"]
     ]
 
     summary.total_files = len(files)
 
     for file_path in files:
+        matched_meta = index_lookup.get(file_path.name) or index_lookup.get(
+            file_path.stem.lower().strip()
+        )
         result = ingest_transcript_file(
             file_path,
             db,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
+            extra_metadata=matched_meta,
         )
         summary.results.append(result)
 

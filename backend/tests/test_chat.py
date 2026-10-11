@@ -562,3 +562,48 @@ def test_chat_default_model_is_qwen2_5_3b(client):
         data = res.json()
         assert data["provider"] == "ollama"
         assert data["model"] == "qwen2.5:3b"
+
+
+@pytest.mark.unit
+def test_chat_excludes_synthetic_fixtures_from_production_citations(client):
+    """Regression test: Chat query matching only synthetic test data refuses to cite it and triggers sufficiency gate."""
+    # "acquisition velocity" is only present in synthetic fixture t2
+    res = client.post(
+        "/api/v1/chat",
+        json={"message": "What is acquisition velocity and how do signups compound?"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+
+    # Must trigger honest refusal gate because authentic transcripts lack this evidence
+    assert data["insufficient_evidence"] is True
+    assert data["sources"] == []
+    assert "could not find sufficient information in the available podcast transcripts" in data["message"]
+
+
+@pytest.mark.unit
+def test_chat_citations_contain_only_authentic_sources(client):
+    """Regression test: When authentic transcripts match, citations contain no synthetic records."""
+    with patch(
+        "app.services.llm.ollama_client.OllamaClient.generate_response",
+        new_callable=AsyncMock,
+    ) as mock_gen:
+        mock_gen.return_value = "Cohort retention measures user engagement over uniform time periods."
+
+        res = client.post(
+            "/api/v1/chat",
+            json={"message": "Explain cohort retention and pricing tiers"},
+        )
+        assert res.status_code == 200
+        data = res.json()
+
+        assert data["insufficient_evidence"] is False
+        assert len(data["sources"]) >= 1
+
+        for citation in data["sources"]:
+            meta = citation.get("metadata", {})
+            # Must not be marked as synthetic test data or test fixture
+            assert meta.get("synthetic_test_data") not in (True, "true")
+            assert meta.get("is_test_fixture") not in (True, "true")
+            assert not citation["source_filename"].startswith("sample_growth_accounting")
+            assert not citation["transcript_title"].startswith("[SYNTHETIC")

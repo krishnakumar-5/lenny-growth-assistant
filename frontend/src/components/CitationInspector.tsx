@@ -1,6 +1,6 @@
 import React from 'react';
 import { SourceCitation } from '../types/api';
-import { X, FileText, User, Hash, AlertCircle, Bookmark } from 'lucide-react';
+import { X, FileText, User, Hash, AlertCircle, Bookmark, ExternalLink } from 'lucide-react';
 
 interface CitationInspectorProps {
   citation: SourceCitation | null;
@@ -10,10 +10,12 @@ interface CitationInspectorProps {
 export const CitationInspector: React.FC<CitationInspectorProps> = ({ citation, onClose }) => {
   if (!citation) return null;
 
-  const isSynthetic = citation.metadata?.synthetic_test_data;
+  const isSynthetic = citation.metadata?.synthetic_test_data || citation.metadata?.is_test_fixture;
   const guest = citation.metadata?.guest || 'Not specified';
-  const episode = citation.metadata?.episode || 'Not specified';
+  const episode = citation.metadata?.episode || citation.metadata?.date || 'Not specified';
   const topic = citation.metadata?.topic || 'General Growth';
+  const postUrl = citation.metadata?.post_url || citation.metadata?.source_url;
+  const youtubeUrl = citation.metadata?.youtube_url;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -73,6 +75,34 @@ export const CitationInspector: React.FC<CitationInspectorProps> = ({ citation, 
                 Score: {citation.score.toFixed(1)}
               </span>
             </div>
+            {postUrl && (
+              <div className="pt-2 border-t border-slate-200/60 flex items-center space-x-2 text-xs">
+                <span className="text-slate-500 font-medium">Original Post:</span>
+                <a
+                  href={postUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-600 hover:text-amber-700 underline font-medium truncate inline-flex items-center space-x-1"
+                >
+                  <span className="truncate">{postUrl}</span>
+                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                </a>
+              </div>
+            )}
+            {youtubeUrl && (
+              <div className="pt-2 border-t border-slate-200/60 flex items-center space-x-2 text-xs">
+                <span className="text-slate-500 font-medium">YouTube:</span>
+                <a
+                  href={youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-red-600 hover:text-red-700 underline font-medium truncate inline-flex items-center space-x-1"
+                >
+                  <span className="truncate">{youtubeUrl}</span>
+                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Full Excerpt */}

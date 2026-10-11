@@ -1,10 +1,12 @@
 ---
-title: "Product Strategy, High Agency, and Good PM vs. Great PM"
+title: "[TEST FIXTURE] Product Strategy, High Agency, and Good PM vs. Great PM"
 guest: "Shreyas Doshi"
 episode: 26
 topic: "Product Strategy & Leadership"
 source_url: "https://www.lennysnewsletter.com/p/shreyas-doshi-product-strategy"
-synthetic_test_data: false
+synthetic_test_data: true
+is_test_fixture: true
+authenticity_notice: "Synthetic benchmark summary authored for development and automated test validation. Not an authentic Lenny's Podcast audio transcript."
 ---
 
 # Shreyas Doshi on Product Strategy and High Agency

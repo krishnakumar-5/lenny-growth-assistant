@@ -1,6 +1,8 @@
 ---
 title: "[SYNTHETIC TEST] The Hierarchy of Growth and Retention Accounting"
 data_classification: "synthetic_test_data"
+synthetic_test_data: true
+is_test_fixture: true
 authenticity_notice: "Synthetic benchmark transcript authored for pipeline and retrieval testing. Not verified authentic Lenny's Podcast audio transcript."
 speaker_persona: "Elena Verna (Illustrative Benchmark)"
 episode: 42

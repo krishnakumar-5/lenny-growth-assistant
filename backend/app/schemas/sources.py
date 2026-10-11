@@ -20,6 +20,10 @@ class SourceSearchRequest(BaseModel):
         description="Maximum number of relevant chunks to retrieve (1-50)",
         examples=[5],
     )
+    include_synthetic: bool = Field(
+        default=False,
+        description="Whether to include synthetic test fixtures in retrieval results",
+    )
 
     @field_validator("query")
     @classmethod

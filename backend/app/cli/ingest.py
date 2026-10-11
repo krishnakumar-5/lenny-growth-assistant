@@ -52,12 +52,39 @@ def main() -> int:
         action="store_true",
         help="Automatically initialize database schema if tables do not exist.",
     )
+    parser.add_argument(
+        "--purge-fixtures",
+        action="store_true",
+        help="Safely remove all synthetic benchmark and test fixture records from the database without touching authentic podcast episodes.",
+    )
 
     args = parser.parse_args()
 
-    # Determine target directory
+    # Verify database connectivity
+    if not check_db_connection():
+        logger.error("Cannot connect to database. Check DATABASE_URL and server status.")
+        print("Error: Database connection check failed. Aborting ingestion.", file=sys.stderr)
+        return 2
+
+    # Handle fixture purging if requested
+    if args.purge_fixtures:
+        from app.models.transcript import Transcript
+        from app.services.retrieval import purge_test_fixtures
+        with SessionLocal() as db:
+            purged = purge_test_fixtures(db)
+            remaining = db.query(Transcript).count()
+            print("=" * 60)
+            print(f"Lenny Growth Assistant - Fixture Management")
+            print("=" * 60)
+            print(f"Successfully purged {purged} synthetic test fixture records from the database.")
+            print(f"Remaining authentic dataset episodes preserved: {remaining}")
+        return 0
+
+    # Determine target directory: prefer CLI --dir, then LENNYS_DATASET_DIR, then TRANSCRIPTS_DIR
     if args.dir:
         target_dir = Path(args.dir).resolve()
+    elif settings.authentic_dataset_path and settings.authentic_dataset_path.exists():
+        target_dir = settings.authentic_dataset_path
     else:
         target_dir = settings.transcripts_path
 
@@ -71,12 +98,6 @@ def main() -> int:
         logger.error("Target transcript directory does not exist: %s", target_dir)
         print(f"Error: Directory not found: {target_dir}", file=sys.stderr)
         return 1
-
-    # Verify database connectivity
-    if not check_db_connection():
-        logger.error("Cannot connect to database. Check DATABASE_URL and server status.")
-        print("Error: Database connection check failed. Aborting ingestion.", file=sys.stderr)
-        return 2
 
     # Initialize tables if requested
     if args.init_tables:

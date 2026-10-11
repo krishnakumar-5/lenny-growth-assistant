@@ -1,10 +1,12 @@
 ---
-title: "The Four Growth Loops and Why Funnels Are Obsolete"
+title: "[TEST FIXTURE] The Four Growth Loops and Why Funnels Are Obsolete"
 guest: "Brian Balfour"
 episode: 34
 topic: "Growth Loops & Retention Mechanics"
 source_url: "https://www.lennysnewsletter.com/p/brian-balfour-growth-loops"
-synthetic_test_data: false
+synthetic_test_data: true
+is_test_fixture: true
+authenticity_notice: "Synthetic benchmark summary authored for development and automated test validation. Not an authentic Lenny's Podcast audio transcript."
 ---
 
 # Brian Balfour on The Four Growth Loops and Compounding Growth

@@ -149,15 +149,44 @@ $env:PYTHONPATH="backend"
 ```
 
 ### 7. Run Transcript Ingestion Pipeline (CLI)
-To ingest transcripts from the configured `data/transcripts/` directory into the database:
+
+The ingestion pipeline supports both the local test fixtures and the external authentic **Lenny's Data starter dataset** (50 authentic podcast episodes + `index.json`).
+
+#### A. Ingesting Authentic Lenny's Data Starter Dataset (50 Episodes)
+Set the external dataset path via the `LENNYS_DATASET_DIR` environment variable (or in `.env`):
 ```powershell
+# Set environment variable (relative path or absolute path)
+$env:LENNYS_DATASET_DIR = "..\lennys-newsletterpodcastdata"
+
+# Run ingestion CLI
 .\backend\.venv\Scripts\python.exe backend\app\cli\ingest.py --init-tables
 ```
-Options:
-- `--dir <path>`: Custom transcript folder (defaults to `data/transcripts`).
+
+Alternatively, specify the directory directly via the `--dir` flag:
+```powershell
+.\backend\.venv\Scripts\python.exe backend\app\cli\ingest.py --dir ..\lennys-newsletterpodcastdata
+```
+
+**Ingestion Pipeline Capabilities:**
+- **Strict UTF-8 Handling & Mojibake Repair**: Transparently diagnoses and fixes CP-1252 / UTF-8 double-encoding artifacts (`itâ€™s` -> `it's`, `â€œ` -> `“`, `â€”` -> `—`) without modifying or inventing content.
+- **YAML Frontmatter & Index Catalog Integration**: Auto-loads `index.json` to enrich transcripts with official publication dates, guest names, original Substack `post_url`, YouTube URLs, and video IDs.
+- **Timestamped Speaker Dialogue Preservation**: Automatically scans and verifies timestamped speaker dialogues (`**Speaker** (HH:MM:SS):`).
+- **Strict Idempotency**: Files are tracked via SHA-256 digests. Re-running ingestion skips identical files (`skipped_unchanged`) and will never produce duplicate records or duplicate chunks.
+- **Data Boundary & Provenance**: The external dataset is kept strictly outside the application Git repository to respect content distribution rights.
+
+#### B. Ingesting Local Test Fixtures
+To ingest only the baseline local test fixtures:
+```powershell
+.\backend\.venv\Scripts\python.exe backend\app\cli\ingest.py --dir data\transcripts
+```
+All local test fixtures in `data/transcripts/` are explicitly marked with `synthetic_test_data: true` and `is_test_fixture: true` to ensure benchmark fixtures are never cited as authentic podcast interviews.
+
+**CLI Flags:**
+- `--dir <path>`: Custom transcript folder (defaults to `LENNYS_DATASET_DIR` if set, else `data/transcripts`).
 - `--chunk-size <int>`: Max characters per chunk (default: 1000).
 - `--chunk-overlap <int>`: Overlap between consecutive chunks (default: 200).
 - `--init-tables`: Auto-creates tables if not already present.
+- `--purge-fixtures`: Safely purges synthetic test fixture records from the database without touching authentic dataset episodes.
 
 ---
 
@@ -453,7 +482,7 @@ Serves the web application at `http://localhost:5173`.
 - [x] Backend Dockerfile containerizing the FastAPI application.
 - [x] Clear separation of fast SQLite unit tests and conditional PostgreSQL integration tests.
 - [x] Transcript ingestion pipeline supporting `.md` and `.txt`, metadata parsing, and idempotency.
-- [x] Authentic podcast transcripts for Elena Verna, Shreyas Doshi, and Brian Balfour.
+- [x] Ingestion and retrieval of 50 authentic Lenny's Podcast episodes with source URLs and speaker timestamps.
 - [x] Transcript chunking with paragraph-aware overlap and boundary preservation.
 - [x] Portable keyword-based retrieval service and `POST /api/v1/sources/search` endpoint.
 - [x] Alembic migration `0002_transcript_and_chunks`.
@@ -462,11 +491,11 @@ Serves the web application at `http://localhost:5173`.
 - [x] Official Pi Coding Agent runtime integration (`@earendil-works/pi-coding-agent`) with Ollama bridge.
 - [x] Grounded Growth Agent layer conforming to Anthropic tool-use patterns.
 - [x] Grounded Chat endpoint (`POST /api/v1/chat`) with session persistence & citations.
-- [x] Dedicated Ship 30 for 30 Atomic Essay generation skill (`POST /api/v1/skills/ship30-essay`).
+- [x] Dedicated Ship 30 for 30 Growth Essay generation skill (~1,250 words; target 1,150–1,350w) (`POST /api/v1/skills/ship30-essay`).
 - [x] React & Vite frontend UI implementation (Chat, Knowledge Explorer, Citation Inspector, Health Monitor).
 - [x] Dedicated Ship 30 Essay Generator and Secure Sandboxed Artifact Viewer.
 - [x] Complete PRD, system design, technical architecture, manual UI test plan, and video script.
-- [x] Full automated test suites: **68 backend tests** + **17 frontend tests** passing.
+- [x] Full automated test suites: **87 backend tests** + **17 frontend tests** passing.
 - [ ] End-to-end containerized deployment verification with Docker Compose on Docker-enabled host.
 
 

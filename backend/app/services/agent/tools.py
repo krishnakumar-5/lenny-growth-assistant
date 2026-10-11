@@ -34,6 +34,15 @@ def execute_retrieval_tool(
     db: Session,
     query: str,
     limit: int = 4,
+    exclude_synthetic: bool = True,
 ) -> List[SearchResultItem]:
-    """Execute the transcript retrieval tool against the database knowledge base."""
-    return search_transcripts(db=db, query=query, limit=limit)
+    """Execute the transcript retrieval tool against the database knowledge base.
+
+    Guarantees synthetic benchmark fixtures are excluded from agent grounding context by default.
+    """
+    return search_transcripts(
+        db=db,
+        query=query,
+        limit=limit,
+        exclude_synthetic=exclude_synthetic,
+    )

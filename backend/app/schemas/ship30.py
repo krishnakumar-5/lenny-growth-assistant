@@ -29,15 +29,15 @@ class Ship30Request(BaseModel):
 
 
 class Ship30Response(BaseModel):
-    """Response containing the generated grounded Atomic Essay artifact."""
+    """Response containing the generated grounded growth essay artifact."""
     title: str = Field(..., description="High-impact, scroll-stopping headline.")
     hook: str = Field(..., description="First 1-2 sentence hook.")
     word_count: int = Field(..., description="Total word count of the essay body.")
     within_constraints: bool = Field(
         ...,
-        description="True if word count adheres to the 200-300 word Ship 30 constraint.",
+        description="True if word count adheres to the 1,150-1,350 word target range (~1,250 words).",
     )
-    content_markdown: str = Field(..., description="Full atomic essay in formatted Markdown.")
+    content_markdown: str = Field(..., description="Full essay in formatted Markdown.")
     content_html: str = Field(..., description="Sanitized, self-contained HTML card for preview.")
     guest_attribution: str = Field(..., description="Podcast guest credited for the core framework.")
     sources: List[SourceCitation] = Field(

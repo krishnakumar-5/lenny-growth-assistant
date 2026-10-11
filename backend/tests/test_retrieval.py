@@ -8,7 +8,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models.transcript import Transcript, TranscriptChunk
-from app.services.retrieval import search_transcripts
+from app.services.retrieval import is_synthetic_or_fixture, purge_test_fixtures, search_transcripts
 
 
 @pytest.fixture(scope="function")
@@ -158,3 +158,110 @@ def test_api_search_validation_errors():
     # Limit too high
     res3 = client.post("/api/v1/sources/search", json={"query": "retention", "limit": 100})
     assert res3.status_code == 422
+
+
+@pytest.mark.unit
+def test_search_transcripts_excludes_synthetic_fixtures_by_default(db_session_with_data):
+    """Regression test: search_transcripts excludes synthetic fixtures by default, but allows them when exclude_synthetic=False."""
+    # Seed synthetic benchmark transcript
+    synthetic_transcript = Transcript(
+        source_id="sample_growth_accounting",
+        title="[SYNTHETIC TEST] The Hierarchy of Growth and Retention Accounting",
+        source_filename="sample_growth_accounting.md",
+        content_hash="synthetic_hash_999",
+        raw_content="Synthetic benchmark testing growth accounting loops.",
+        meta_info={"synthetic_test_data": True, "is_test_fixture": True},
+    )
+    synthetic_chunk = TranscriptChunk(
+        transcript=synthetic_transcript,
+        chunk_index=0,
+        chunk_text="Growth accounting decomposes active user cohorts into new and churned.",
+        char_count=70,
+        meta_info={"synthetic_test_data": True},
+    )
+    db_session_with_data.add_all([synthetic_transcript, synthetic_chunk])
+    db_session_with_data.commit()
+
+    # 1. Default production search (exclude_synthetic=True) must NOT return the synthetic fixture
+    results_production = search_transcripts(db_session_with_data, query="Growth accounting", limit=5, exclude_synthetic=True)
+    assert not any(r.source_filename == "sample_growth_accounting.md" for r in results_production)
+    assert not any(r.transcript_title.startswith("[SYNTHETIC") for r in results_production)
+
+    # 2. Test search with exclude_synthetic=False allows automated tests to inspect fixtures
+    results_test = search_transcripts(db_session_with_data, query="Growth accounting", limit=5, exclude_synthetic=False)
+    assert any(r.source_filename == "sample_growth_accounting.md" for r in results_test)
+
+
+@pytest.mark.unit
+def test_api_search_excludes_synthetic_unless_explicitly_requested(db_session_with_data):
+    """Regression test: POST /api/v1/sources/search excludes synthetic fixtures by default."""
+    # Seed synthetic fixture
+    t_syn = Transcript(
+        source_id="elena_verna_plg",
+        title="[TEST FIXTURE] The Ultimate Guide to PLG",
+        source_filename="elena_verna_plg.md",
+        content_hash="fixture_hash_888",
+        raw_content="Product-led growth framework benchmark.",
+        meta_info={"is_test_fixture": True, "synthetic_test_data": True},
+    )
+    c_syn = TranscriptChunk(
+        transcript=t_syn,
+        chunk_index=0,
+        chunk_text="Reverse trial downgrades users gracefully to permanent free.",
+        char_count=60,
+        meta_info={"is_test_fixture": True},
+    )
+    db_session_with_data.add_all([t_syn, c_syn])
+    db_session_with_data.commit()
+
+    app.dependency_overrides[get_db] = lambda: db_session_with_data
+    client = TestClient(app)
+
+    try:
+        # Default API request (include_synthetic defaults to False)
+        res_default = client.post("/api/v1/sources/search", json={"query": "Reverse trial"})
+        assert res_default.status_code == 200
+        data_default = res_default.json()
+        assert not any(item["source_filename"] == "elena_verna_plg.md" for item in data_default["results"])
+
+        # Explicit test request requesting synthetic fixtures
+        res_explicit = client.post("/api/v1/sources/search", json={"query": "Reverse trial", "include_synthetic": True})
+        assert res_explicit.status_code == 200
+        data_explicit = res_explicit.json()
+        assert any(item["source_filename"] == "elena_verna_plg.md" for item in data_explicit["results"])
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.unit
+def test_purge_test_fixtures(db_session_with_data):
+    """Regression test: purge_test_fixtures deletes only synthetic fixtures and preserves authentic episodes."""
+    t_syn = Transcript(
+        source_id="brian_balfour_loops",
+        title="[TEST FIXTURE] Growth Loops",
+        source_filename="brian_balfour_loops.md",
+        content_hash="fixture_hash_777",
+        raw_content="Loop mechanics.",
+        meta_info={"is_test_fixture": True},
+    )
+    c_syn = TranscriptChunk(
+        transcript=t_syn,
+        chunk_index=0,
+        chunk_text="Loops compound.",
+        char_count=15,
+        meta_info={},
+    )
+    db_session_with_data.add_all([t_syn, c_syn])
+    db_session_with_data.commit()
+
+    initial_total = db_session_with_data.query(Transcript).count()
+    purged_count = purge_test_fixtures(db_session_with_data)
+
+    assert purged_count == 1
+    remaining_total = db_session_with_data.query(Transcript).count()
+    assert remaining_total == initial_total - 1
+
+    # Verified transcripts must remain untouched
+    retention_guide = db_session_with_data.query(Transcript).filter(Transcript.source_id == "retention_guide").first()
+    assert retention_guide is not None
+    assert retention_guide.title == "Elena Verna on B2B Growth Loops"
