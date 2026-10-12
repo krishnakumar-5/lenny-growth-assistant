@@ -80,3 +80,43 @@ class ChatResponse(BaseModel):
         default_factory=datetime.utcnow,
         description="Timestamp of response creation",
     )
+
+
+class MessageItem(BaseModel):
+    """Individual message item representation."""
+    id: uuid.UUID = Field(..., description="Unique message UUID")
+    role: str = Field(..., description="Speaker role ('user' or 'assistant')")
+    content: str = Field(..., description="Message text content")
+    created_at: datetime = Field(..., description="Message timestamp in UTC")
+
+
+class SessionSummary(BaseModel):
+    """Summary of a saved conversation session."""
+    id: uuid.UUID = Field(..., description="Conversation session UUID")
+    title: str = Field(..., description="Title or topic summary of the conversation")
+    created_at: datetime = Field(..., description="Session creation timestamp in UTC")
+    updated_at: datetime = Field(..., description="Session last updated timestamp in UTC")
+    message_count: int = Field(default=0, description="Total number of messages in the session")
+    last_message: Optional[str] = Field(default=None, description="Preview of the most recent message")
+
+
+class SessionDetail(BaseModel):
+    """Complete detail of a conversation session including full message history."""
+    id: uuid.UUID = Field(..., description="Conversation session UUID")
+    title: str = Field(..., description="Title or topic summary of the conversation")
+    created_at: datetime = Field(..., description="Session creation timestamp in UTC")
+    updated_at: datetime = Field(..., description="Session last updated timestamp in UTC")
+    messages: List[MessageItem] = Field(default_factory=list, description="Ordered conversation messages")
+
+
+class SessionRenameRequest(BaseModel):
+    """Payload for renaming a conversation session."""
+    title: str = Field(..., min_length=1, max_length=255, description="New title for the session")
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v: str) -> str:
+        clean = v.strip()
+        if not clean:
+            raise ValueError("Session title cannot be empty or pure whitespace.")
+        return clean

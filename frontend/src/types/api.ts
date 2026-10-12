@@ -92,3 +92,25 @@ export interface ChatMessageItem {
   insufficient_evidence?: boolean;
   isError?: boolean;
 }
+
+export interface SessionSummary {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  last_message?: string | null;
+}
+
+export interface SessionDetail {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  messages: {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    created_at: string;
+  }[];
+}

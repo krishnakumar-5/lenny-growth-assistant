@@ -107,4 +107,50 @@ describe('Frontend API Service', () => {
     expect(result.total_results).toBe(1);
     expect(result.results[0].chunk_text).toBe('Text about retention');
   });
+
+  it('listSessions retrieves saved sessions', async () => {
+    const mockSessions = [
+      {
+        id: 'sess-1',
+        title: 'Retention loops',
+        created_at: '2026-10-10T00:00:00Z',
+        updated_at: '2026-10-10T00:00:00Z',
+        message_count: 2,
+        last_message: 'Retention is key',
+      },
+    ];
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockSessions,
+    } as Response);
+
+    const { listSessions } = await import('../services/api');
+    const result = await listSessions();
+    expect(result.length).toBe(1);
+    expect(result[0].title).toBe('Retention loops');
+  });
+
+  it('getSession retrieves session details and messages', async () => {
+    const mockDetail = {
+      id: 'sess-1',
+      title: 'Retention loops',
+      created_at: '2026-10-10T00:00:00Z',
+      updated_at: '2026-10-10T00:00:00Z',
+      messages: [
+        { id: 'm-1', role: 'user', content: 'What is PLG?', created_at: '2026-10-10T00:00:00Z' },
+        { id: 'm-2', role: 'assistant', content: 'PLG is...', created_at: '2026-10-10T00:00:01Z' },
+      ],
+    };
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockDetail,
+    } as Response);
+
+    const { getSession } = await import('../services/api');
+    const result = await getSession('sess-1');
+    expect(result.id).toBe('sess-1');
+    expect(result.messages.length).toBe(2);
+  });
 });

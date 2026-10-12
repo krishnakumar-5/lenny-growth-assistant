@@ -607,3 +607,58 @@ def test_chat_citations_contain_only_authentic_sources(client):
             assert meta.get("is_test_fixture") not in (True, "true")
             assert not citation["source_filename"].startswith("sample_growth_accounting")
             assert not citation["transcript_title"].startswith("[SYNTHETIC")
+
+
+@pytest.mark.unit
+def test_session_management_api_lifecycle(client):
+    """Test session listing, detail retrieval, renaming, and deletion."""
+    with patch(
+        "app.services.llm.ollama_client.OllamaClient.generate_response",
+        new_callable=AsyncMock,
+    ) as mock_gen:
+        mock_gen.return_value = "Cohort retention measures user engagement over uniform time periods."
+
+        # 1. Create a session by chatting
+        chat_res = client.post(
+            "/api/v1/chat",
+            json={"message": "First message about cohort retention"},
+        )
+        assert chat_res.status_code == 200
+        session_id = chat_res.json()["session_id"]
+
+        # 2. List sessions
+        list_res = client.get("/api/v1/chat/sessions")
+        assert list_res.status_code == 200
+        sessions = list_res.json()
+        assert len(sessions) >= 1
+        matched = next((s for s in sessions if s["id"] == session_id), None)
+        assert matched is not None
+        assert matched["message_count"] == 2  # 1 user + 1 assistant
+        assert matched["last_message"] is not None
+
+        # 3. Retrieve session detail with messages in chronological order
+        detail_res = client.get(f"/api/v1/chat/sessions/{session_id}")
+        assert detail_res.status_code == 200
+        detail = detail_res.json()
+        assert detail["id"] == session_id
+        assert len(detail["messages"]) == 2
+        assert detail["messages"][0]["role"] == "user"
+        assert detail["messages"][0]["content"] == "First message about cohort retention"
+        assert detail["messages"][1]["role"] == "assistant"
+
+        # 4. Rename session
+        rename_res = client.patch(
+            f"/api/v1/chat/sessions/{session_id}",
+            json={"title": "Custom Renamed Growth Session"},
+        )
+        assert rename_res.status_code == 200
+        assert rename_res.json()["title"] == "Custom Renamed Growth Session"
+
+        # 5. Delete session
+        del_res = client.delete(f"/api/v1/chat/sessions/{session_id}")
+        assert del_res.status_code == 200
+        assert del_res.json()["status"] == "deleted"
+
+        # 6. Verify 404 on deleted session
+        get_again = client.get(f"/api/v1/chat/sessions/{session_id}")
+        assert get_again.status_code == 404

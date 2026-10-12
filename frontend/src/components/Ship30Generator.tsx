@@ -77,28 +77,33 @@ export const Ship30Generator: React.FC<Ship30GeneratorProps> = ({
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-6 sm:p-8 text-white shadow-md">
-        <div className="flex items-center space-x-2.5 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center">
+      {/* Hero Header Panel */}
+      <div className="spatial-panel p-6 sm:p-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-48 bg-gradient-to-bl from-amber-500/15 via-orange-500/5 to-transparent pointer-events-none" />
+
+        <div className="flex items-center space-x-2.5 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
             <Feather className="w-4 h-4" />
           </div>
-          <span className="text-xs uppercase tracking-wider font-bold text-amber-100">
-            Dedicated Skill
+          <span className="text-xs uppercase tracking-wider font-bold text-amber-400">
+            Dedicated Ship 30 Skill
+          </span>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            Target ~1,250 Words
           </span>
         </div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">
-          Ship 30 for 30: Atomic Essay Generator
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100 mb-2">
+          Ship 30 for 30: Long-Form Essay Studio
         </h2>
-        <p className="text-xs sm:text-sm text-amber-50 max-w-2xl leading-relaxed">
-          Operationalize insights from Lenny's Podcast into concise, 200–300 word "Atomic Essays" designed with the framework by Dickie Bush & Nicolas Cole.
+        <p className="text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+          Operationalize insights from Lenny's Podcast into grounded long-form essays (1,150–1,350 words) structured with Ship 30 principles: compelling hook, clear headings, skimmable bullet points, and verified source citations.
         </p>
       </div>
 
       {/* Generator Form */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div className="spatial-panel p-6 sm:p-7 space-y-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
             Growth Topic / Framework
           </label>
           <textarea
@@ -107,12 +112,12 @@ export const Ship30Generator: React.FC<Ship30GeneratorProps> = ({
             placeholder="E.g., Why product-led sales depends on Product-Qualified Leads, or Shreyas Doshi's principles of product strategy..."
             rows={3}
             disabled={loading}
-            className="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50/50"
+            className="w-full rounded-xl border border-white/[0.1] p-3 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-dark-950/70 text-slate-100 placeholder-slate-500 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
             Target Audience
           </label>
           <input
@@ -120,13 +125,13 @@ export const Ship30Generator: React.FC<Ship30GeneratorProps> = ({
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
             disabled={loading}
-            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-slate-50/50"
+            className="w-full rounded-xl border border-white/[0.1] px-3.5 py-2.5 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 bg-dark-950/70 text-slate-100 placeholder-slate-500 transition-colors"
           />
         </div>
 
         {error && (
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start space-x-2 text-rose-800 text-xs">
-            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+          <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start space-x-2 text-rose-300 text-xs">
+            <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
             <div>
               <span className="font-bold">Grounding Safeguard Notice:</span> {error}
             </div>
@@ -137,12 +142,12 @@ export const Ship30Generator: React.FC<Ship30GeneratorProps> = ({
           <button
             onClick={() => handleGenerate()}
             disabled={loading || !topic.trim()}
-            className="flex items-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-colors shadow-sm disabled:opacity-50"
+            className="flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-amber-500/20 disabled:opacity-50"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Synthesizing Atomic Essay (200-300w)...</span>
+                <span>Synthesizing Long-Form Essay (~1,250w)...</span>
               </>
             ) : (
               <>
@@ -156,11 +161,11 @@ export const Ship30Generator: React.FC<Ship30GeneratorProps> = ({
 
       {/* Curated Templates Section */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-800 flex items-center space-x-2">
-          <BookOpen className="w-4 h-4 text-amber-600" />
+        <h3 className="text-sm font-bold text-slate-200 flex items-center space-x-2">
+          <BookOpen className="w-4 h-4 text-amber-400" />
           <span>Curated Growth Frameworks (Instant Generation)</span>
         </h3>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-400">
           Click any verified framework below to pull transcript evidence and generate an Atomic Essay artifact:
         </p>
 
@@ -173,17 +178,17 @@ export const Ship30Generator: React.FC<Ship30GeneratorProps> = ({
                 setTopic(item.query);
                 handleGenerate(item.query);
               }}
-              className="text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-sm transition-all group disabled:opacity-50 flex items-center justify-between"
+              className="text-left p-4 rounded-xl spatial-card hover:border-amber-500/40 transition-all group disabled:opacity-50 flex items-center justify-between"
             >
               <div>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded">
                   {item.guest}
                 </span>
-                <h4 className="text-xs font-semibold text-slate-800 group-hover:text-amber-800 mt-1">
+                <h4 className="text-xs font-semibold text-slate-200 group-hover:text-white mt-1.5 transition-colors">
                   {item.title}
                 </h4>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all flex-shrink-0 ml-2" />
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-1 transition-all flex-shrink-0 ml-2" />
             </button>
           ))}
         </div>

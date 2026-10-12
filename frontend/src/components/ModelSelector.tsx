@@ -31,24 +31,26 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm flex flex-wrap items-center justify-between gap-3 text-sm">
-      <div className="flex items-center space-x-2 text-slate-700 font-medium">
-        <Settings2 className="w-4 h-4 text-amber-600" />
-        <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Inference Settings</span>
+    <div className="bg-dark-900/90 border border-white/[0.08] rounded-2xl p-3.5 shadow-depth flex flex-wrap items-center justify-between gap-3 text-sm backdrop-blur-md">
+      <div className="flex items-center space-x-2 text-slate-200 font-medium">
+        <Settings2 className="w-4 h-4 text-amber-500" />
+        <span className="text-xs uppercase tracking-wider text-slate-400 font-bold">
+          Inference Settings
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         {/* Provider Selector */}
         <div className="flex items-center space-x-1.5">
-          <label htmlFor="provider-select" className="text-xs text-slate-500 flex items-center">
-            <Cpu className="w-3.5 h-3.5 mr-1 text-slate-400" /> Provider:
+          <label htmlFor="provider-select" className="text-xs text-slate-400 flex items-center">
+            <Cpu className="w-3.5 h-3.5 mr-1 text-amber-500/80" /> Provider:
           </label>
           <select
             id="provider-select"
             value={provider}
             onChange={handleProviderChange}
             disabled={disabled}
-            className="text-xs rounded-lg border-slate-200 bg-slate-50 py-1 px-2.5 text-slate-800 font-medium border focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+            className="text-xs rounded-xl border border-white/[0.1] bg-dark-950 py-1.5 px-3 text-slate-200 font-medium focus:border-amber-500/60 focus:outline-none focus:ring-1 focus:ring-amber-500/60 disabled:opacity-50 transition-colors"
           >
             <option value="ollama">Ollama (Local Offline)</option>
             <option value="anthropic">Anthropic (Cloud API)</option>
@@ -57,7 +59,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
         {/* Model Selector */}
         <div className="flex items-center space-x-1.5">
-          <label htmlFor="model-select" className="text-xs text-slate-500">
+          <label htmlFor="model-select" className="text-xs text-slate-400">
             Model:
           </label>
           {provider === 'ollama' ? (
@@ -66,7 +68,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               value={model}
               onChange={(e) => setModel(e.target.value)}
               disabled={disabled}
-              className="text-xs rounded-lg border-slate-200 bg-slate-50 py-1 px-2.5 text-slate-800 font-medium border focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+              className="text-xs rounded-xl border border-white/[0.1] bg-dark-950 py-1.5 px-3 text-slate-200 font-medium focus:border-amber-500/60 focus:outline-none focus:ring-1 focus:ring-amber-500/60 disabled:opacity-50 transition-colors"
             >
               <option value="qwen2.5:3b">qwen2.5:3b (Local Host / Default)</option>
               <option value="llama3:8b">llama3:8b</option>
@@ -79,7 +81,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               value={model}
               onChange={(e) => setModel(e.target.value)}
               disabled={disabled}
-              className="text-xs rounded-lg border-slate-200 bg-slate-50 py-1 px-2.5 text-slate-800 font-medium border focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+              className="text-xs rounded-xl border border-white/[0.1] bg-dark-950 py-1.5 px-3 text-slate-200 font-medium focus:border-amber-500/60 focus:outline-none focus:ring-1 focus:ring-amber-500/60 disabled:opacity-50 transition-colors"
             >
               <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet-20241022</option>
               <option value="claude-3-5-haiku-20241022">claude-3-5-haiku-20241022</option>
@@ -89,18 +91,18 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
         {/* Agent Framework Selector */}
         <div className="flex items-center space-x-1.5">
-          <label htmlFor="framework-select" className="text-xs text-slate-500 flex items-center">
-            <Bot className="w-3.5 h-3.5 mr-1 text-slate-400" /> Framework:
+          <label htmlFor="framework-select" className="text-xs text-slate-400 flex items-center">
+            <Bot className="w-3.5 h-3.5 mr-1 text-amber-500/80" /> Framework:
           </label>
           <select
             id="framework-select"
             value={agentFramework}
             onChange={(e) => setAgentFramework(e.target.value)}
             disabled={disabled}
-            className="text-xs rounded-lg border-slate-200 bg-slate-50 py-1 px-2.5 text-slate-800 font-medium border focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-50"
+            className="text-xs rounded-xl border border-white/[0.1] bg-dark-950 py-1.5 px-3 text-slate-200 font-medium focus:border-amber-500/60 focus:outline-none focus:ring-1 focus:ring-amber-500/60 disabled:opacity-50 transition-colors"
           >
-            <option value="anthropic_tool_agent">Anthropic Tool Agent</option>
-            <option value="pi_coding_agent">Pi Coding Agent (CLI)</option>
+            <option value="anthropic_tool_agent">Tool-Use Agent (Default)</option>
+            <option value="pi_coding_agent">Pi Coding Agent Runtime</option>
           </select>
         </div>
       </div>

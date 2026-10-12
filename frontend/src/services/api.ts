@@ -1,4 +1,4 @@
-import { ChatRequest, ChatResponse, HealthResponse, SearchResponse } from '../types/api';
+import { ChatRequest, ChatResponse, HealthResponse, SearchResponse, SessionSummary, SessionDetail } from '../types/api';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
 
@@ -103,5 +103,70 @@ export async function generateShip30Essay(request: import('../types/api').Ship30
     throw new ApiError(res.status, errorDetail);
   }
 
+  return await res.json();
+}
+
+export async function listSessions(): Promise<SessionSummary[]> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/chat/sessions`);
+  if (!res.ok) {
+    let errorDetail = `Failed to list sessions: status ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson && errJson.detail) errorDetail = errJson.detail;
+    } catch {
+      // Fallback
+    }
+    throw new ApiError(res.status, errorDetail);
+  }
+  return await res.json();
+}
+
+export async function getSession(sessionId: string): Promise<SessionDetail> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}`);
+  if (!res.ok) {
+    let errorDetail = `Failed to get session ${sessionId}: status ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson && errJson.detail) errorDetail = errJson.detail;
+    } catch {
+      // Fallback
+    }
+    throw new ApiError(res.status, errorDetail);
+  }
+  return await res.json();
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    let errorDetail = `Failed to delete session: status ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson && errJson.detail) errorDetail = errJson.detail;
+    } catch {
+      // Fallback
+    }
+    throw new ApiError(res.status, errorDetail);
+  }
+}
+
+export async function renameSession(sessionId: string, title: string): Promise<SessionSummary> {
+  const res = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  });
+  if (!res.ok) {
+    let errorDetail = `Failed to rename session: status ${res.status}`;
+    try {
+      const errJson = await res.json();
+      if (errJson && errJson.detail) errorDetail = errJson.detail;
+    } catch {
+      // Fallback
+    }
+    throw new ApiError(res.status, errorDetail);
+  }
   return await res.json();
 }
