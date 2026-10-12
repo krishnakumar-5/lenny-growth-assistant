@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         default="qwen2.5:3b",
         validation_alias=AliasChoices("OLLAMA_MODEL"),
     )
-    OLLAMA_TIMEOUT_SECONDS: float = Field(default=30.0)
+    OLLAMA_TIMEOUT_SECONDS: float = Field(default=600.0)
 
     # Cloud Provider (Anthropic) Configuration
     ANTHROPIC_API_KEY: Union[str, None] = Field(
@@ -60,7 +60,7 @@ class Settings(BaseSettings):
         default="claude-3-5-sonnet-20241022",
         validation_alias=AliasChoices("ANTHROPIC_MODEL", "AGENT_MODEL"),
     )
-    ANTHROPIC_TIMEOUT_SECONDS: float = Field(default=30.0)
+    ANTHROPIC_TIMEOUT_SECONDS: float = Field(default=300.0)
 
     # Agent & Grounded Chat Settings
     AGENT_FRAMEWORK: str = Field(
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("PI_CLI_PATH", "PI_EXECUTABLE_PATH"),
     )
-    PI_TIMEOUT_SECONDS: float = Field(default=30.0)
+    PI_TIMEOUT_SECONDS: float = Field(default=120.0)
     PI_CONFIG_DIR: Union[str, None] = Field(
         default=None,
         validation_alias=AliasChoices("PI_CONFIG_DIR", "PI_AGENT_DIR"),

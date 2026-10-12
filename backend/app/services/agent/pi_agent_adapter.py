@@ -136,7 +136,34 @@ class PiCodingAgentAdapter:
             logger.warning("Could not persist Pi models.json to %s: %s", self.config_dir, e)
 
         target_model = model or self.ollama_model
-        cmd: List[str] = [exe, "-p", prompt]
+        if os.name == "nt" and exe.lower().endswith((".cmd", ".ps1")):
+            node_exe = shutil.which("node")
+            launcher = Path(exe).with_name("pi-launcher.js")
+
+            if not node_exe or not launcher.is_file():
+                raise RuntimeError(
+                    "Could not find Node.js or the Pi launcher."
+                )
+
+            cmd: List[str] = [
+                node_exe,
+                str(launcher),
+                "--provider", provider,
+                "--model", target_model,
+                "--print",
+                "--no-session",
+                prompt,
+            ]
+        else:
+            cmd: List[str] = [
+                exe,
+                "--provider", provider,
+                "--model", target_model,
+                "--print",
+                "--no-session",
+                prompt,
+            ]
+
 
         effective_timeout = timeout or self.timeout_seconds
         env = dict(os.environ)
